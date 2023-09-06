@@ -1,0 +1,66 @@
+import random
+
+# Utility function -- convert a list of int to a string
+def list2str(l):
+    s = ''
+    for i in range(len(l)):
+        s += str(l[i]) + ' '
+    return s
+
+def roll_dice():
+    return random.randint(1, 6)
+
+# Function to run a single episode and collect returns
+def run_episode(event):
+    state_list = []
+    state_transition_list = {}
+    episode = []
+
+    cur_state = [0 for _ in range(len(event))]
+    state_list.append(cur_state)
+
+    while cur_state != event:
+        action = roll_dice()
+        next_state = cur_state.copy()
+        next_state[random.randrange(len(event))] = action
+        state_transition_list[(list2str(cur_state), action)] = next_state
+        state_list.append(next_state)
+        episode.append((cur_state, action))
+        cur_state = next_state
+
+    return episode, state_list, state_transition_list
+
+# Monte Carlo method to estimate state values
+def monte_carlo(num_episodes, event):
+    state_values = {list2str(event): 0}  # Initialize state values
+    returns = {}  # Dictionary to store cumulative returns for each state
+
+    for _ in range(num_episodes):
+        episode, state_list, _ = run_episode(event)
+        G = 0  # Initialize the return
+
+        # Traverse the episode in reverse to calculate returns
+        for t in range(len(episode) - 1, -1, -1):
+            state, action = episode[t]
+            G += 1  # In this simple example, the return is just the length of the episode
+            state_str = list2str(state)
+
+            if state_str not in [ep_state[0] for ep_state, _ in episode[:t]]:
+                if state_str not in returns:
+                    returns[state_str] = []
+                returns[state_str].append(G)
+
+                # Update state value using the average of returns
+                state_values[state_str] = sum(returns[state_str]) / len(returns[state_str])
+
+    return state_values
+
+num_trials = int(input("Enter number of trials: "))
+event_string = input("Enter an event: ")
+event = list(map(int, event_string.split(' ')))
+
+state_values = monte_carlo(num_trials, event)
+
+# Print estimated state values
+for state_str, value in state_values.items():
+    print(f"Estimated Value of State {state_str}: {value}")
